@@ -1,0 +1,61 @@
+k8s-gpu-management-system/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── k8s/
+│   │   │           └── gpu/
+│   │   │               ├── K8sGpuManagementApplication.java
+│   │   │               ├── config/
+│   │   │               │   ├── SwaggerConfig.java
+│   │   │               │   ├── JpaConfig.java
+│   │   │               │   ├── DatabaseConfig.java
+│   │   │               │   ├── BatchConfig.java
+│   │   │               │   └── WebConfig.java
+│   │   │               ├── controller/
+│   │   │               │   ├── GpuNodeController.java
+│   │   │               │   └── GpuDashboardController.java
+│   │   │               ├── service/
+│   │   │               │   ├── GpuNodeService.java
+│   │   │               │   └── GpuDashboardService.java
+│   │   │               ├── repository/
+│   │   │               │   ├── GpuNodeRepository.java
+│   │   │               │   ├── GpuDeviceRepository.java
+│   │   │               │   ├── GpuUsageMetricsRepository.java
+│   │   │               │   ├── SystemAlertsRepository.java
+│   │   │               │   └── GpuAllocationsRepository.java
+│   │   │               ├── entity/
+│   │   │               │   ├── BaseEntity.java
+│   │   │               │   ├── GpuNode.java
+│   │   │               │   ├── GpuDevice.java
+│   │   │               │   ├── GpuModel.java
+│   │   │               │   ├── GpuUsageMetrics.java
+│   │   │               │   ├── SystemAlerts.java
+│   │   │               │   └── GpuAllocations.java
+│   │   │               ├── dto/
+│   │   │               │   ├── GpuNodeDto.java
+│   │   │               │   └── GpuDashboardDto.java
+│   │   │               ├── mapper/
+│   │   │               │   └── GpuNodeMapper.java
+│   │   │               ├── batch/
+│   │   │               │   └── GpuMetricsBatchJob.java
+│   │   │               └── exception/
+│   │   │                   ├── ResourceNotFoundException.java
+│   │   │                   ├── GlobalExceptionHandler.java
+│   │   │                   └── ErrorResponse.java
+│   │   └── resources/
+│   │       ├── application.yml
+│   │       └── logback-spring.xml
+│   └── test/
+│       └── java/
+│           └── com/
+│               └── k8s/
+│                   └── gpu/
+│                       └── K8sGpuManagementApplicationTests.java
+├── build.gradle
+├── settings.gradle
+├── gradle/
+│   └── wrapper/
+├── gradlew
+├── gradlew.bat
+└── README.md

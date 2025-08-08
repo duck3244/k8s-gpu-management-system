@@ -1,0 +1,147 @@
+sequenceDiagram
+    participant Client as 클라이언트
+    participant Controller as GpuNodeController
+    participant Service as GpuNodeService
+    participant Mapper as GpuNodeMapper
+    participant Repository as GpuNodeRepository
+    participant DB as Oracle Database
+    participant Exception as GlobalExceptionHandler
+
+    %% GPU 노드 목록 조회 시퀀스
+    Note over Client, DB: GPU 노드 목록 조회 플로우
+    Client->>+Controller: GET /api/v1/gpu-nodes?page=0&size=20
+    Controller->>+Service: getGpuNodes(SearchCondition)
+    Service->>+Repository: findBySearchConditions(...)
+    Repository->>+DB: SELECT ... FROM GPU_NODES WHERE ...
+    DB-->>-Repository: ResultSet
+    Repository-->>-Service: Page<GpuNode>
+    Service->>+Mapper: toDto(GpuNode)
+    Mapper-->>-Service: GpuNodeDto
+    Service-->>-Controller: Page<GpuNodeDto>
+    Controller-->>-Client: 200 OK + Page<GpuNodeDto>
+
+    %% GPU 노드 등록 시퀀스
+    Note over Client, DB: GPU 노드 등록 플로우
+    Client->>+Controller: POST /api/v1/gpu-nodes + Request Body
+    Controller->>+Service: createGpuNode(Request)
+    
+    %% 중복 체크
+    Service->>+Repository: existsById(nodeId)
+    Repository->>+DB: SELECT COUNT(*) FROM GPU_NODES WHERE NODE_ID = ?
+    DB-->>-Repository: count
+    Repository-->>-Service: boolean
+    
+    alt nodeId 중복
+        Service-->>Exception: IllegalArgumentException
+        Exception-->>Controller: 400 Bad Request
+        Controller-->>Client: 400 Bad Request + ErrorResponse
+    else nodeId 중복 없음
+        Service->>+Repository: findByNodeName(nodeName)
+        Repository->>+DB: SELECT * FROM GPU_NODES WHERE NODE_NAME = ?
+        DB-->>-Repository: Optional<GpuNode>
+        Repository-->>-Service: Optional<GpuNode>
+        
+        alt nodeName 중복
+            Service-->>Exception: IllegalArgumentException
+            Exception-->>Controller: 400 Bad Request
+            Controller-->>Client: 400 Bad Request + ErrorResponse
+        else nodeName 중복 없음
+            Service->>+Mapper: toEntity(Request)
+            Mapper-->>-Service: GpuNode
+            Service->>+Repository: save(GpuNode)
+            Repository->>+DB: INSERT INTO GPU_NODES ...
+            DB-->>-Repository: saved entity
+            Repository-->>-Service: GpuNode
+            Service->>+Mapper: toDto(GpuNode)
+            Mapper-->>-Service: GpuNodeDto
+            Service-->>-Controller: GpuNodeDto
+            Controller-->>-Client: 201 Created + GpuNodeDto
+        end
+    end
+
+    %% GPU 노드 상세 조회 시퀀스
+    Note over Client, DB: GPU 노드 상세 조회 플로우
+    Client->>+Controller: GET /api/v1/gpu-nodes/{nodeId}
+    Controller->>+Service: getGpuNode(nodeId)
+    Service->>+Repository: findById(nodeId)
+    Repository->>+DB: SELECT * FROM GPU_NODES WHERE NODE_ID = ?
+    DB-->>-Repository: Optional<GpuNode>
+    Repository-->>-Service: Optional<GpuNode>
+    
+    alt 노드 존재하지 않음
+        Service-->>Exception: ResourceNotFoundException
+        Exception-->>Controller: 404 Not Found
+        Controller-->>Client: 404 Not Found + ErrorResponse
+    else 노드 존재
+        Service->>+Mapper: toDto(GpuNode)
+        Mapper-->>-Service: GpuNodeDto
+        Service-->>-Controller: GpuNodeDto
+        Controller-->>-Client: 200 OK + GpuNodeDto
+    end
+
+    %% GPU 노드 수정 시퀀스
+    Note over Client, DB: GPU 노드 수정 플로우
+    Client->>+Controller: PUT /api/v1/gpu-nodes/{nodeId} + Request Body
+    Controller->>+Service: updateGpuNode(nodeId, Request)
+    Service->>+Repository: findById(nodeId)
+    Repository->>+DB: SELECT * FROM GPU_NODES WHERE NODE_ID = ?
+    DB-->>-Repository: Optional<GpuNode>
+    Repository-->>-Service: Optional<GpuNode>
+    
+    alt 노드 존재하지 않음
+        Service-->>Exception: ResourceNotFoundException
+        Exception-->>Controller: 404 Not Found
+        Controller-->>Client: 404 Not Found + ErrorResponse
+    else 노드 존재
+        %% 노드명 중복 체크 (자신 제외)
+        Service->>+Repository: findByNodeName(nodeName)
+        Repository->>+DB: SELECT * FROM GPU_NODES WHERE NODE_NAME = ? AND NODE_ID != ?
+        DB-->>-Repository: Optional<GpuNode>
+        Repository-->>-Service: Optional<GpuNode>
+        
+        alt 다른 노드가 같은 이름 사용
+            Service-->>Exception: IllegalArgumentException
+            Exception-->>Controller: 400 Bad Request
+            Controller-->>Client: 400 Bad Request + ErrorResponse
+        else 노드명 사용 가능
+            Service->>+Mapper: updateEntity(Request, existingNode)
+            Mapper-->>-Service: void
+            Service->>+Repository: save(GpuNode)
+            Repository->>+DB: UPDATE GPU_NODES SET ... WHERE NODE_ID = ?
+            DB-->>-Repository: updated entity
+            Repository-->>-Service: GpuNode
+            Service->>+Mapper: toDto(GpuNode)
+            Mapper-->>-Service: GpuNodeDto
+            Service-->>-Controller: GpuNodeDto
+            Controller-->>-Client: 200 OK + GpuNodeDto
+        end
+    end
+
+    %% GPU 노드 삭제 시퀀스
+    Note over Client, DB: GPU 노드 삭제 플로우
+    Client->>+Controller: DELETE /api/v1/gpu-nodes/{nodeId}
+    Controller->>+Service: deleteGpuNode(nodeId)
+    Service->>+Repository: findById(nodeId)
+    Repository->>+DB: SELECT * FROM GPU_NODES WHERE NODE_ID = ?
+    DB-->>-Repository: Optional<GpuNode>
+    Repository-->>-Service: Optional<GpuNode>
+    
+    alt 노드 존재하지 않음
+        Service-->>Exception: ResourceNotFoundException
+        Exception-->>Controller: 404 Not Found
+        Controller-->>Client: 404 Not Found + ErrorResponse
+    else 노드 존재
+        %% GPU 장비 존재 체크
+        alt GPU 장비 존재
+            Service-->>Exception: IllegalStateException
+            Exception-->>Controller: 409 Conflict
+            Controller-->>Client: 409 Conflict + ErrorResponse
+        else GPU 장비 없음
+            Service->>+Repository: delete(GpuNode)
+            Repository->>+DB: DELETE FROM GPU_NODES WHERE NODE_ID = ?
+            DB-->>-Repository: void
+            Repository-->>-Service: void
+            Service-->>-Controller: void
+            Controller-->>-Client: 204 No Content
+        end
+    end

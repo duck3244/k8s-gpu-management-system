@@ -1,0 +1,174 @@
+graph TB
+    %% 클라이언트 계층
+    subgraph "Client Tier"
+        WEB[Web Browser]
+        API_CLIENT[API Client Applications]
+        KUBECTL[kubectl / K8s CLI]
+    end
+
+    %% 로드 밸런서
+    subgraph "Load Balancer"
+        LB[Application Load Balancer]
+    end
+
+    %% 애플리케이션 서버 클러스터
+    subgraph "Application Server Cluster"
+        subgraph "Node 1"
+            APP1[Spring Boot App<br/>:8080]
+            JVM1[OpenJDK 11 JVM]
+        end
+        
+        subgraph "Node 2"
+            APP2[Spring Boot App<br/>:8080]
+            JVM2[OpenJDK 11 JVM]
+        end
+        
+        subgraph "Node 3"
+            APP3[Spring Boot App<br/>:8080]
+            JVM3[OpenJDK 11 JVM]
+        end
+    end
+
+    %% 데이터베이스 클러스터
+    subgraph "Database Cluster"
+        subgraph "Primary DB"
+            ORACLE_P[(Oracle Database<br/>Primary<br/>:1521)]
+            HIKARI_P[HikariCP Pool<br/>Max: 20 connections]
+        end
+        
+        subgraph "Standby DB"
+            ORACLE_S[(Oracle Database<br/>Standby<br/>:1521)]
+            HIKARI_S[HikariCP Pool<br/>Max: 10 connections]
+        end
+    end
+
+    %% Kubernetes 클러스터 (모니터링 대상)
+    subgraph "Kubernetes GPU Cluster"
+        subgraph "Master Nodes"
+            K8S_MASTER[K8s Control Plane]
+        end
+        
+        subgraph "GPU Worker Nodes"
+            subgraph "GPU Node 1"
+                KUBELET1[kubelet]
+                NVIDIA1[NVIDIA Driver<br/>nvidia-smi]
+                GPU1[GPU Devices<br/>RTX 4090 x8]
+            end
+            
+            subgraph "GPU Node 2"
+                KUBELET2[kubelet]
+                NVIDIA2[NVIDIA Driver<br/>nvidia-smi]
+                GPU2[GPU Devices<br/>A100 x4]
+            end
+            
+            subgraph "GPU Node 3"
+                KUBELET3[kubelet]
+                NVIDIA3[NVIDIA Driver<br/>nvidia-smi]
+                GPU3[GPU Devices<br/>H100 x2]
+            end
+        end
+    end
+
+    %% 모니터링 및 로깅
+    subgraph "Monitoring & Logging"
+        PROMETHEUS[Prometheus<br/>Metrics Collection]
+        GRAFANA[Grafana<br/>Dashboard]
+        ELK[ELK Stack<br/>Log Aggregation]
+    end
+
+    %% 배포 인프라
+    subgraph "Deployment Infrastructure"
+        DOCKER[Docker Registry]
+        CI_CD[Jenkins / GitLab CI]
+        ANSIBLE[Ansible<br/>Configuration Management]
+    end
+
+    %% 네트워크 연결
+    WEB --> LB
+    API_CLIENT --> LB
+    KUBECTL --> K8S_MASTER
+
+    LB --> APP1
+    LB --> APP2
+    LB --> APP3
+
+    APP1 --> HIKARI_P
+    APP2 --> HIKARI_P
+    APP3 --> HIKARI_P
+    
+    HIKARI_P --> ORACLE_P
+    HIKARI_S --> ORACLE_S
+    ORACLE_P -.-> ORACLE_S
+
+    %% 메트릭 수집 연결
+    APP1 -.-> NVIDIA1
+    APP1 -.-> NVIDIA2
+    APP1 -.-> NVIDIA3
+    
+    APP2 -.-> NVIDIA1
+    APP2 -.-> NVIDIA2
+    APP2 -.-> NVIDIA3
+    
+    APP3 -.-> NVIDIA1
+    APP3 -.-> NVIDIA2
+    APP3 -.-> NVIDIA3
+
+    %% Kubernetes API 연결
+    APP1 -.-> K8S_MASTER
+    APP2 -.-> K8S_MASTER
+    APP3 -.-> K8S_MASTER
+
+    %% 모니터링 연결
+    PROMETHEUS --> APP1
+    PROMETHEUS --> APP2
+    PROMETHEUS --> APP3
+    PROMETHEUS --> ORACLE_P
+    
+    GRAFANA --> PROMETHEUS
+    ELK --> APP1
+    ELK --> APP2
+    ELK --> APP3
+
+    %% 배포 연결
+    CI_CD --> DOCKER
+    DOCKER --> APP1
+    DOCKER --> APP2
+    DOCKER --> APP3
+    
+    ANSIBLE --> APP1
+    ANSIBLE --> APP2
+    ANSIBLE --> APP3
+
+    %% 노드 배치 정보
+    APP1 -.-> |"Deployed on"| NODE1[Physical Server 1<br/>Ubuntu 20.04<br/>16 CPU, 64GB RAM]
+    APP2 -.-> |"Deployed on"| NODE2[Physical Server 2<br/>Ubuntu 20.04<br/>16 CPU, 64GB RAM]
+    APP3 -.-> |"Deployed on"| NODE3[Physical Server 3<br/>Ubuntu 20.04<br/>16 CPU, 64GB RAM]
+
+    ORACLE_P -.-> |"Deployed on"| DB_NODE1[Database Server 1<br/>Oracle Linux 8<br/>32 CPU, 128GB RAM<br/>NVMe SSD 2TB]
+    
+    ORACLE_S -.-> |"Deployed on"| DB_NODE2[Database Server 2<br/>Oracle Linux 8<br/>32 CPU, 128GB RAM<br/>NVMe SSD 2TB]
+
+    %% 네트워크 정보
+    subgraph "Network Configuration"
+        VLAN1[Application VLAN<br/>10.1.0.0/24]
+        VLAN2[Database VLAN<br/>10.2.0.0/24]
+        VLAN3[GPU Cluster VLAN<br/>10.3.0.0/24]
+        VLAN4[Management VLAN<br/>10.4.0.0/24]
+    end
+
+    %% 스타일링
+    classDef client fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    classDef app fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef database fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    classDef k8s fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef monitoring fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef infrastructure fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
+    classDef network fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+
+    class WEB,API_CLIENT,KUBECTL client
+    class LB,APP1,APP2,APP3,JVM1,JVM2,JVM3 app
+    class ORACLE_P,ORACLE_S,HIKARI_P,HIKARI_S database
+    class K8S_MASTER,KUBELET1,KUBELET2,KUBELET3,NVIDIA1,NVIDIA2,NVIDIA3,GPU1,GPU2,GPU3 k8s
+    class PROMETHEUS,GRAFANA,ELK monitoring
+    class DOCKER,CI_CD,ANSIBLE infrastructure
+    class VLAN1,VLAN2,VLAN3,VLAN4 network

@@ -1,0 +1,105 @@
+graph TB
+    %% 외부 시스템
+    subgraph "External Systems"
+        K8S[Kubernetes Cluster]
+        NVIDIA[NVIDIA GPU Hardware]
+        NVML[NVIDIA-SMI / NVML]
+    end
+
+    %% 프레젠테이션 계층
+    subgraph "Presentation Layer"
+        REST[REST API Controllers]
+        SWAGGER[Swagger UI]
+        ACTUATOR[Spring Actuator]
+    end
+
+    %% 비즈니스 계층
+    subgraph "Business Layer"
+        NODE_SVC[GpuNodeService]
+        DASH_SVC[GpuDashboardService]
+        METRICS_SVC[GpuMetricsCollectionService]
+        BATCH_SVC[Batch Services]
+    end
+
+    %% 데이터 액세스 계층
+    subgraph "Data Access Layer"
+        JPA[Spring Data JPA]
+        REPO[Repository Interfaces]
+        MAPPER[MapStruct Mappers]
+    end
+
+    %% 배치 처리 계층
+    subgraph "Batch Processing Layer"
+        SCHEDULER[Scheduled Tasks]
+        BATCH_JOB[Spring Batch Jobs]
+        JOB_LAUNCHER[Job Launcher]
+    end
+
+    %% 데이터베이스
+    subgraph "Database Layer"
+        ORACLE[(Oracle Database)]
+        HIKARI[HikariCP Connection Pool]
+    end
+
+    %% 공통 컴포넌트
+    subgraph "Cross-cutting Concerns"
+        EXCEPTION[Global Exception Handler]
+        VALIDATION[Bean Validation]
+        LOGGING[Logback Logging]
+        SECURITY[Security Configuration]
+    end
+
+    %% 설정 및 인프라
+    subgraph "Configuration & Infrastructure"
+        CONFIG[Application Configuration]
+        DOCKER[Docker Container]
+        GRADLE[Gradle Build]
+    end
+
+    %% 연결 관계
+    K8S -.-> REST
+    NVIDIA -.-> NVML
+    NVML --> METRICS_SVC
+
+    REST --> NODE_SVC
+    REST --> DASH_SVC
+    SWAGGER --> REST
+    ACTUATOR --> REST
+
+    NODE_SVC --> REPO
+    DASH_SVC --> REPO
+    METRICS_SVC --> REPO
+    BATCH_SVC --> REPO
+
+    SCHEDULER --> BATCH_JOB
+    BATCH_JOB --> JOB_LAUNCHER
+    BATCH_JOB --> METRICS_SVC
+
+    REPO --> JPA
+    JPA --> HIKARI
+    HIKARI --> ORACLE
+
+    NODE_SVC --> MAPPER
+    DASH_SVC --> MAPPER
+
+    REST --> EXCEPTION
+    REST --> VALIDATION
+    
+    %% 스타일링
+    classDef external fill:#ffcccc,stroke:#ff6666,stroke-width:2px
+    classDef presentation fill:#cce5ff,stroke:#3399ff,stroke-width:2px
+    classDef business fill:#ccffcc,stroke:#66cc66,stroke-width:2px
+    classDef data fill:#ffffcc,stroke:#ffcc66,stroke-width:2px
+    classDef batch fill:#e6ccff,stroke:#9966cc,stroke-width:2px
+    classDef database fill:#ffcc99,stroke:#ff9933,stroke-width:2px
+    classDef common fill:#f0f0f0,stroke:#999999,stroke-width:2px
+    classDef config fill:#ffccff,stroke:#cc66cc,stroke-width:2px
+
+    class K8S,NVIDIA,NVML external
+    class REST,SWAGGER,ACTUATOR presentation
+    class NODE_SVC,DASH_SVC,METRICS_SVC,BATCH_SVC business
+    class JPA,REPO,MAPPER data
+    class SCHEDULER,BATCH_JOB,JOB_LAUNCHER batch
+    class ORACLE,HIKARI database
+    class EXCEPTION,VALIDATION,LOGGING,SECURITY common
+    class CONFIG,DOCKER,GRADLE config

@@ -1,0 +1,335 @@
+classDiagram
+    %% Controller Layer
+    class GpuNodeController {
+        -GpuNodeService gpuNodeService
+        +getGpuNodes(SearchCondition) Page~GpuNodeDto~
+        +getGpuNode(String nodeId) GpuNodeDto
+        +createGpuNode(Request) GpuNodeDto
+        +updateGpuNode(String nodeId, Request) GpuNodeDto
+        +deleteGpuNode(String nodeId) void
+        +updateNodeStatus(String nodeId, NodeStatus) GpuNodeDto
+        +getActiveNodes() List~GpuNodeDto~
+        +getNodesWithAvailableGpus() List~GpuNodeDto~
+    }
+
+    class GpuDashboardController {
+        -GpuDashboardService dashboardService
+        +getDashboardData() GpuDashboardDto
+        +getOverallStats() OverallStats
+        +getClusterStats() List~ClusterStats~
+        +getModelStats() List~ModelStats~
+        +getUsageTrends(int hours) List~UsageTrend~
+        +getActiveAlerts() List~AlertInfo~
+        +getRecentActivities(int limit) List~RecentActivity~
+        +getRealtimeMetrics() List~PerformanceMetrics~
+    }
+
+    %% Service Layer
+    class GpuNodeService {
+        -GpuNodeRepository gpuNodeRepository
+        -GpuNodeMapper gpuNodeMapper
+        +getGpuNodes(SearchCondition) Page~GpuNodeDto~
+        +getGpuNode(String nodeId) GpuNodeDto
+        +createGpuNode(Request) GpuNodeDto
+        +updateGpuNode(String nodeId, Request) GpuNodeDto
+        +deleteGpuNode(String nodeId) void
+        +updateNodeStatus(String nodeId, NodeStatus) GpuNodeDto
+        +getActiveNodes() List~GpuNodeDto~
+        +optimizeGpuResources() void
+    }
+
+    class GpuDashboardService {
+        -GpuNodeRepository nodeRepository
+        -GpuDeviceRepository deviceRepository
+        -GpuUsageMetricsRepository metricsRepository
+        -SystemAlertsRepository alertsRepository
+        -GpuAllocationsRepository allocationsRepository
+        +getDashboardData() GpuDashboardDto
+        +getOverallStats() OverallStats
+        +getClusterStats() List~ClusterStats~
+        +getModelStats() List~ModelStats~
+        +getUsageTrends(int hours) List~UsageTrend~
+        +getActiveAlerts() List~AlertInfo~
+        +getRecentActivities(int limit) List~RecentActivity~
+        +getRealtimeMetrics() List~PerformanceMetrics~
+    }
+
+    class GpuMetricsCollectionService {
+        +collectMetrics(GpuDevice) GpuUsageMetrics
+        -generateRandomMetric(double min, double max) BigDecimal
+        -generateRandomInteger(int min, int max) Integer
+    }
+
+    %% Repository Layer
+    class GpuNodeRepository {
+        <<interface>>
+        +findByNodeName(String) Optional~GpuNode~
+        +findByClusterName(String) List~GpuNode~
+        +findByNodeStatus(NodeStatus) List~GpuNode~
+        +findActiveNodes() List~GpuNode~
+        +findNodesWithAvailableGpus() List~GpuNode~
+        +findBySearchConditions() Page~GpuNode~
+        +getClusterStatistics() List~Object[]~
+        +getNodeStatusStatistics() List~Object[]~
+        +findRecentlyUpdatedNodes(LocalDateTime) List~GpuNode~
+        +findHighUtilizationNodes(double) List~GpuNode~
+    }
+
+    class GpuDeviceRepository {
+        <<interface>>
+        +findByDeviceStatusIn(List) List~GpuDevice~
+        +getOverallGpuStatistics() Object[]
+        +getModelStatistics() List~Object[]~
+    }
+
+    class GpuUsageMetricsRepository {
+        <<interface>>
+        +getLatestMetricsStatistics() Object[]
+        +getModelAverageMetrics(String) Object[]
+        +getUsageTrends(LocalDateTime) List~Object[]~
+        +getLatestDeviceMetrics() List~Object[]~
+    }
+
+    %% Entity Layer
+    class BaseEntity {
+        <<abstract>>
+        #LocalDateTime createdDate
+        #LocalDateTime updatedDate
+        #onCreate() void
+        #onUpdate() void
+    }
+
+    class GpuNode {
+        -String nodeId
+        -String nodeName
+        -String clusterName
+        -String nodeIp
+        -Integer totalGpus
+        -Integer availableGpus
+        -NodeStatus nodeStatus
+        -String kubernetesVersion
+        -String dockerVersion
+        -String nvidiaDriverVersion
+        -String nodeLabels
+        -String taints
+        -List~GpuDevice~ gpuDevices
+    }
+
+    class GpuDevice {
+        -String deviceId
+        -String nodeId
+        -String modelId
+        -Integer deviceIndex
+        -String serialNumber
+        -String pciAddress
+        -String gpuUuid
+        -DeviceStatus deviceStatus
+        -BigDecimal currentTempC
+        -BigDecimal maxTempC
+        -BigDecimal currentPowerW
+        -BigDecimal maxPowerW
+        -String driverVersion
+        -LocalDate installationDate
+        -LocalDate warrantyExpiryDate
+        -BigDecimal purchaseCost
+        -GpuNode gpuNode
+        -GpuModel gpuModel
+    }
+
+    class GpuModel {
+        -String modelId
+        -String modelName
+        -String manufacturer
+        -String architecture
+        -Integer memoryGb
+        -Integer cudaCores
+        -Integer tensorCores
+        -Integer rtCores
+        -Integer baseClockMhz
+        -Integer boostClockMhz
+        -BigDecimal memoryBandwidthGbps
+        -String memoryType
+        -Integer powerConsumptionW
+        -String pcieGeneration
+        -String migSupport
+        -Integer maxMigInstances
+        -String computeCapability
+        -Integer releaseYear
+        -MarketSegment marketSegment
+        -LocalDate endOfLifeDate
+    }
+
+    class GpuUsageMetrics {
+        -String metricId
+        -String deviceId
+        -String migId
+        -String allocationId
+        -BigDecimal gpuUtilizationPct
+        -Integer memoryUsedMb
+        -Integer memoryTotalMb
+        -BigDecimal memoryUtilizationPct
+        -BigDecimal temperatureC
+        -BigDecimal powerDrawW
+        -BigDecimal fanSpeedPct
+        -Integer clockGraphicsMhz
+        -Integer clockMemoryMhz
+        -BigDecimal pcieTxMbps
+        -BigDecimal pcieRxMbps
+        -Integer processesCount
+        -LocalDateTime timestamp
+        -String collectionSource
+    }
+
+    class GpuAllocations {
+        -String allocationId
+        -String namespace
+        -String podName
+        -String containerName
+        -String workloadType
+        -ResourceType resourceType
+        -String allocatedResource
+        -Integer requestedMemoryGb
+        -Integer allocatedMemoryGb
+        -String priorityClass
+        -LocalDateTime allocationTime
+        -LocalDateTime plannedReleaseTime
+        -LocalDateTime releaseTime
+        -AllocationStatus status
+        -BigDecimal costPerHour
+        -BigDecimal totalCost
+        -String userId
+        -String teamId
+        -String projectId
+    }
+
+    class SystemAlerts {
+        -String alertId
+        -String ruleId
+        -String alertType
+        -String severity
+        -String targetType
+        -String targetId
+        -String message
+        -String details
+        -BigDecimal metricValue
+        -BigDecimal thresholdValue
+        -AlertStatus status
+        -LocalDateTime acknowledgedDate
+        -String acknowledgedBy
+        -LocalDateTime resolvedDate
+        -String resolvedBy
+    }
+
+    %% DTO Layer
+    class GpuNodeDto {
+        -String nodeId
+        -String nodeName
+        -String clusterName
+        -String nodeIp
+        -Integer totalGpus
+        -Integer availableGpus
+        -NodeStatus nodeStatus
+        -String kubernetesVersion
+        -String dockerVersion
+        -String nvidiaDriverVersion
+        -LocalDateTime createdDate
+        -LocalDateTime updatedDate
+    }
+
+    class GpuDashboardDto {
+        -OverallStats overallStats
+        -List~ClusterStats~ clusterStats
+        -List~ModelStats~ modelStats
+        -List~UsageTrend~ usageTrends
+        -List~AlertInfo~ activeAlerts
+        -List~RecentActivity~ recentActivities
+    }
+
+    %% Batch Layer
+    class GpuMetricsBatchJob {
+        -JobBuilderFactory jobBuilderFactory
+        -StepBuilderFactory stepBuilderFactory
+        -GpuDeviceRepository gpuDeviceRepository
+        -GpuUsageMetricsRepository gpuUsageMetricsRepository
+        -GpuMetricsCollectionService metricsCollectionService
+        +gpuMetricsCollectionJob() Job
+        +gpuMetricsCollectionStep() Step
+        +gpuDeviceReader() RepositoryItemReader
+        +gpuMetricsProcessor() ItemProcessor
+        +gpuMetricsWriter() RepositoryItemWriter
+    }
+
+    class GpuMetricsScheduler {
+        -JobLauncher jobLauncher
+        -Job gpuMetricsCollectionJob
+        +collectGpuMetrics() void
+    }
+
+    class GpuOptimizationScheduler {
+        -GpuNodeService gpuNodeService
+        +optimizeGpuResources() void
+    }
+
+    %% Mapper Layer
+    class GpuNodeMapper {
+        <<interface>>
+        +toDto(GpuNode) GpuNodeDto
+        +toDtoList(List) List~GpuNodeDto~
+        +toEntity(Request) GpuNode
+        +updateEntity(Request, GpuNode) void
+    }
+
+    %% Exception Layer
+    class GlobalExceptionHandler {
+        +handleResourceNotFoundException(ResourceNotFoundException) ResponseEntity
+        +handleIllegalArgumentException(IllegalArgumentException) ResponseEntity
+        +handleMethodArgumentNotValidException(MethodArgumentNotValidException) ResponseEntity
+        +handleException(Exception) ResponseEntity
+    }
+
+    class ErrorResponse {
+        -LocalDateTime timestamp
+        -int status
+        -String error
+        -String message
+        -Map details
+        -String path
+    }
+
+    %% 관계 정의
+    %% Controller -> Service
+    GpuNodeController --> GpuNodeService
+    GpuDashboardController --> GpuDashboardService
+
+    %% Service -> Repository
+    GpuNodeService --> GpuNodeRepository
+    GpuNodeService --> GpuNodeMapper
+    GpuDashboardService --> GpuNodeRepository
+    GpuDashboardService --> GpuDeviceRepository
+    GpuDashboardService --> GpuUsageMetricsRepository
+
+    %% Entity 상속
+    BaseEntity <|-- GpuNode
+    BaseEntity <|-- GpuDevice
+    BaseEntity <|-- GpuModel
+    BaseEntity <|-- GpuUsageMetrics
+    BaseEntity <|-- GpuAllocations
+    BaseEntity <|-- SystemAlerts
+
+    %% Entity 관계
+    GpuNode "1" --> "0..*" GpuDevice : contains
+    GpuModel "1" --> "0..*" GpuDevice : modelOf
+    GpuDevice "1" --> "0..*" GpuUsageMetrics : metricsFrom
+
+    %% DTO 매핑
+    GpuNodeMapper --> GpuNode
+    GpuNodeMapper --> GpuNodeDto
+
+    %% Batch 관계
+    GpuMetricsBatchJob --> GpuMetricsCollectionService
+    GpuMetricsBatchJob --> GpuDeviceRepository
+    GpuMetricsBatchJob --> GpuUsageMetricsRepository
+    GpuMetricsScheduler --> GpuMetricsBatchJob
+
+    %% Exception 처리
+    GlobalExceptionHandler --> ErrorResponse

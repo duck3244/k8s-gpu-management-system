@@ -1,0 +1,81 @@
+sequenceDiagram
+    participant Scheduler as GpuMetricsScheduler
+    participant JobLauncher as Spring JobLauncher
+    participant Job as GpuMetricsBatchJob
+    participant Reader as GpuDeviceReader
+    participant Processor as GpuMetricsProcessor
+    participant Writer as GpuMetricsWriter
+    participant MetricsService as GpuMetricsCollectionService
+    participant DeviceRepo as GpuDeviceRepository
+    participant MetricsRepo as GpuUsageMetricsRepository
+    participant DB as Oracle Database
+
+    %% 스케줄러에 의한 배치 작업 시작
+    Note over Scheduler, DB: GPU 메트릭 수집 배치 플로우 (1분마다 실행)
+    
+    Scheduler->>+JobLauncher: collectGpuMetrics() @Scheduled
+    Note right of Scheduler: 스케줄: fixedDelay=60000ms
+    
+    JobLauncher->>+Job: run(gpuMetricsCollectionJob, jobParameters)
+    Note right of JobLauncher: JobParameters: timestamp=currentTimeMillis
+    
+    Job->>+Reader: gpuDeviceReader()
+    Note right of Job: Step 시작: chunk size = 100
+    
+    %% Reader Phase - GPU 장비 조회
+    loop 청크 단위 처리 (100개씩)
+        Reader->>+DeviceRepo: findByDeviceStatusIn([ACTIVE, MIG_ENABLED])
+        DeviceRepo->>+DB: SELECT * FROM GPU_DEVICES WHERE DEVICE_STATUS IN ('ACTIVE', 'MIG_ENABLED')
+        DB-->>-DeviceRepo: List<GpuDevice>
+        DeviceRepo-->>-Reader: List<GpuDevice>
+        Reader-->>Job: chunk of GpuDevice entities
+        
+        %% Processor Phase - 각 GPU 장비별 메트릭 수집
+        loop 청크 내 각 GPU 장비 처리
+            Job->>+Processor: process(GpuDevice)
+            Processor->>+MetricsService: collectMetrics(device)
+            
+            Note right of MetricsService: 실제 환경에서는 nvidia-smi 호출
+            MetricsService->>MetricsService: generateMetricId()
+            MetricsService->>MetricsService: simulateNvidiaSmiCall()
+            Note right of MetricsService: 시뮬레이션: GPU 사용률, 온도, 전력 등
+            
+            MetricsService->>MetricsService: generateRandomMetric(10.0, 95.0) // GPU 사용률
+            MetricsService->>MetricsService: generateRandomMetric(40.0, 85.0) // 온도
+            MetricsService->>MetricsService: generateRandomMetric(100.0, 350.0) // 전력
+            MetricsService->>MetricsService: calculateMemoryUtilization()
+            
+            MetricsService-->>-Processor: GpuUsageMetrics
+            Processor-->>-Job: GpuUsageMetrics
+        end
+        
+        %% Writer Phase - 수집된 메트릭 일괄 저장
+        Job->>+Writer: write(List<GpuUsageMetrics>)
+        Writer->>+MetricsRepo: saveAll(metricsChunk)
+        MetricsRepo->>+DB: INSERT INTO GPU_USAGE_METRICS (METRIC_ID, DEVICE_ID, GPU_UTILIZATION_PCT, ...)
+        Note right of DB: 배치 인서트로 성능 최적화
+        DB-->>-MetricsRepo: saved entities
+        MetricsRepo-->>-Writer: List<GpuUsageMetrics>
+        Writer-->>-Job: write complete
+    end
+    
+    Job-->>-JobLauncher: JobExecution(status=COMPLETED)
+    JobLauncher-->>-Scheduler: JobExecution result
+    
+    Note over Scheduler: 배치 작업 완료 로깅
+    Scheduler->>Scheduler: log.info("GPU 메트릭 수집 완료 - 상태: {}", jobExecution.getStatus())
+
+    %% 에러 처리 시나리오
+    alt 배치 작업 실패
+        Job-->>JobLauncher: JobExecution(status=FAILED)
+        JobLauncher-->>Scheduler: JobExecution with errors
+        Scheduler->>Scheduler: log.error("GPU 메트릭 수집 배치 작업 실행 중 오류", e)
+    end
+
+    %% 메트릭 수집 실패 시나리오 (개별 GPU)
+    alt GPU 메트릭 수집 실패
+        MetricsService-->>Processor: null (수집 실패)
+        Processor->>Processor: log.warn("GPU 메트릭 수집 실패 - deviceId: {}", deviceId)
+        Processor-->>Job: null (해당 GPU 스킵)
+        Note right of Processor: 개별 GPU 실패가 전체 배치를 중단시키지 않음
+    end

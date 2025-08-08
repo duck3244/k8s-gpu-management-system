@@ -1,0 +1,91 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: k8s-gpu-management-system
+  
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: gpu_admin
+    password: gpu_password
+    hikari:
+      connection-test-query: SELECT 1 FROM DUAL
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  jpa:
+    database-platform: org.hibernate.dialect.Oracle12cDialect
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  batch:
+    job:
+      enabled: false
+    initialize-schema: never
+  
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Seoul
+    serialization:
+      write-dates-as-timestamps: false
+
+# Logging
+logging:
+  level:
+    com.k8s.gpu: DEBUG
+    org.springframework.batch: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/k8s-gpu-management.log
+    max-size: 100MB
+    max-history: 30
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Custom application properties
+app:
+  gpu:
+    metrics:
+      collection:
+        interval: 60000  # 1 minute in milliseconds
+        batch-size: 100
+    alert:
+      evaluation:
+        interval: 300000  # 5 minutes in milliseconds
+    optimization:
+      schedule: "0 */30 * * * *"  # Every 30 minutes
+  
+  batch:
+    metrics-collection:
+      chunk-size: 100
+      thread-pool-size: 5
