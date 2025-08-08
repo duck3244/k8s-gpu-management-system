@@ -1,49 +1,48 @@
 version: '3.8'
 
 services:
-  # Oracle Database (개발용)
+  # Oracle Database
   oracle-db:
-    image: container-registry.oracle.com/database/express:21.3.0-xe
-    container_name: k8s-gpu-oracle-dev
+    image: gvenzl/oracle-xe:21-slim
+    container_name: k8s-gpu-oracle
     environment:
-      - ORACLE_PWD=OraclePassword123
-      - ORACLE_CHARACTERSET=AL32UTF8
+      ORACLE_PASSWORD: OraclePassword123
+      ORACLE_DATABASE: XE
+      APP_USER: gpu_admin
+      APP_USER_PASSWORD: gpu_password
     ports:
       - "1521:1521"
-      - "5500:5500"
     volumes:
-      - oracle-data:/opt/oracle/oradata
+      - oracle_data:/opt/oracle/oradata
       - ./database/init:/container-entrypoint-initdb.d
-    networks:
-      - k8s-gpu-network
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "sqlplus", "-L", "system/OraclePassword123@//localhost:1521/XE", "@/dev/null"]
+      test: ["CMD", "sqlplus", "-L", "system/OraclePassword123@//localhost:1521/XE", "<<<", "SELECT 1 FROM DUAL;"]
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - k8s-gpu-network
 
   # K8s GPU Management Application
   k8s-gpu-app:
     build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: k8s-gpu-management-app
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: k8s-gpu-management
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:oracle:thin:@oracle-db:1521:XE
       - SPRING_DATASOURCE_USERNAME=gpu_admin
       - SPRING_DATASOURCE_PASSWORD=gpu_password
-      - JAVA_OPTS=-Xmx2g -Xms1g
     ports:
       - "8080:8080"
-    volumes:
-      - ./logs:/app/logs
-    networks:
-      - k8s-gpu-network
     depends_on:
       oracle-db:
         condition: service_healthy
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - k8s-gpu-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
@@ -51,8 +50,55 @@ services:
       timeout: 10s
       retries: 3
 
+  # Prometheus (모니터링)
+  prometheus:
+    image: prom/prometheus:v2.40.0
+    container_name: k8s-gpu-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - k8s-gpu-network
+    restart: unless-stopped
+
+  # Grafana (시각화)
+  grafana:
+    image: grafana/grafana:9.3.0
+    container_name: k8s-gpu-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - k8s-gpu-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
 volumes:
-  oracle-data:
+  oracle_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  app_logs:
+    driver: local
 
 networks:
   k8s-gpu-network:

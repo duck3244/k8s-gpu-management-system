@@ -3,6 +3,9 @@ package com.k8s.gpu.controller;
 import com.k8s.gpu.dto.GpuNodeDto;
 import com.k8s.gpu.entity.GpuNode;
 import com.k8s.gpu.service.GpuNodeService;
+
+import main.java.com.k8s.gpu.controller.GpuNodeController;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -110,7 +113,7 @@ class GpuNodeControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.nodeId").value("test-node-001"))
-                .andExpected(jsonPath("$.nodeName").value("test-gpu-worker-01"));
+                .andExpect(jsonPath("$.nodeName").value("test-gpu-worker-01"));
     }
 
     @Test

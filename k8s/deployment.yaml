@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-gpu-management
+  namespace: k8s-gpu-management
+  labels:
+    app: k8s-gpu-management-system
+    version: "1.0.0"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: k8s-gpu-management-system
+  template:
+    metadata:
+      labels:
+        app: k8s-gpu-management-system
+        version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/api/actuator/prometheus"
+    spec:
+      # Service Account (RBAC가 필요한 경우)
+      serviceAccountName: k8s-gpu-management-sa
+      
+      # Image Pull Secret
+      imagePullSecrets:
+        - name: k8s-gpu-registry-secret
+      
+      # Init Container (데이터베이스 연결 대기)
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Oracle Database..."
+              until nc -z oracle-service 1521; do
+                echo "Database not ready, waiting..."
+                sleep 5
+              done
+              echo "Database is ready!"
+      
+      containers:
+        - name: k8s-gpu-management
+          image: k8s-gpu-management:1.0.0
+          imagePullPolicy: IfNotPresent
+          
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-gpu-management-secret
+                  key: DB_PASSWORD
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport"
+          
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+            - name: logs-volume
+              mountPath: /app/logs
+          
+          # Resource Limits
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          
+          # Health Checks
+          livenessProbe:
+            httpGet:
+              path: /api/actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /api/actuator/health/readiness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          # Startup Probe
+          startupProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+      
+      volumes:
+        - name: config-volume
+          configMap:
+            name: k8s-gpu-management-config
+        - name: logs-volume
+          emptyDir: {}
+      
+      # Pod Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      
+      # Node Selection
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      
+      # Tolerations (필요한 경우)
+      tolerations:
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+
+---
+# Service Account for RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-gpu-management-sa
+  namespace: k8s-gpu-management
+  labels:
+    app: k8s-gpu-management-system
+
+---
+# Cluster Role for GPU node access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-gpu-management-role
+  labels:
+    app: k8s-gpu-management-system
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+
+---
+# Cluster Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-gpu-management-binding
+  labels:
+    app: k8s-gpu-management-system
+subjects:
+  - kind: ServiceAccount
+    name: k8s-gpu-management-sa
+    namespace: k8s-gpu-management
+roleRef:
+  kind: ClusterRole
+  name: k8s-gpu-management-role
+  apiGroup: rbac.authorization.k8s.io

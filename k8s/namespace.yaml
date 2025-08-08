@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8s-gpu-management
+  labels:
+    name: k8s-gpu-management
+    app: k8s-gpu-management-system
+    version: "1.0.0"
+  annotations:
+    description: "Kubernetes GPU 리소스 관리 시스템"
