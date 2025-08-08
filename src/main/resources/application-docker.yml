@@ -1,0 +1,94 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: k8s-gpu-management-system
+  
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@oracle-db:1521:XE}
+    username: ${SPRING_DATASOURCE_USERNAME:gpu_admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:gpu_password}
+    hikari:
+      connection-test-query: SELECT 1 FROM DUAL
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+  
+  jpa:
+    database-platform: org.hibernate.dialect.Oracle12cDialect
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  batch:
+    job:
+      enabled: false
+    initialize-schema: never
+  
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Seoul
+
+# Logging
+logging:
+  level:
+    com.k8s.gpu: INFO
+    org.springframework.batch: WARN
+    org.hibernate.SQL: WARN
+    org.springframework.web: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/k8s-gpu-management.log
+    max-size: 100MB
+    max-history: 30
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Custom application properties
+app:
+  gpu:
+    metrics:
+      collection:
+        interval: 60000
+        batch-size: 100
+    alert:
+      evaluation:
+        interval: 300000
+    optimization:
+      schedule: "0 */30 * * * *"
+  
+  batch:
+    metrics-collection:
+      chunk-size: 100
+      thread-pool-size: 5

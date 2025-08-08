@@ -2,13 +2,17 @@ package com.k8s.gpu.batch;
 
 import com.k8s.gpu.entity.GpuDevice;
 import com.k8s.gpu.entity.GpuUsageMetrics;
-import com.k8s.gpu.service.GpuMetricsCollectionService;
+import com.k8s.gpu.service.GpuNodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
@@ -21,9 +25,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.k8s.gpu.repository.GpuDeviceRepository;
 import com.k8s.gpu.repository.GpuUsageMetricsRepository;
+import com.k8s.gpu.repository.GpuAllocationsRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -246,6 +254,7 @@ class GpuMetricsScheduler {
 @Slf4j
 class GpuOptimizationScheduler {
 
+    private final GpuAllocationsRepository allocationsRepository;
     private final GpuNodeService gpuNodeService;
 
     /**
@@ -257,14 +266,41 @@ class GpuOptimizationScheduler {
             log.info("GPU 자원 최적화 작업 시작");
             
             // 만료된 할당 정리
+            cleanupExpiredAllocations();
+            
             // 노드별 가용성 업데이트
+            updateNodeAvailability();
+            
             // MIG 인스턴스 최적화
+            optimizeMigInstances();
+            
             // 비용 계산 업데이트
+            updateCostCalculations();
             
             log.info("GPU 자원 최적화 작업 완료");
             
         } catch (Exception e) {
             log.error("GPU 자원 최적화 작업 실행 중 오류", e);
         }
+    }
+
+    private void cleanupExpiredAllocations() {
+        log.debug("만료된 할당 정리 시작");
+        // TODO: 만료된 할당 정리 로직 구현
+    }
+
+    private void updateNodeAvailability() {
+        log.debug("노드별 가용성 업데이트 시작");
+        // TODO: 노드별 가용성 업데이트 로직 구현
+    }
+
+    private void optimizeMigInstances() {
+        log.debug("MIG 인스턴스 최적화 시작");
+        // TODO: MIG 인스턴스 최적화 로직 구현
+    }
+
+    private void updateCostCalculations() {
+        log.debug("비용 계산 업데이트 시작");
+        // TODO: 비용 계산 업데이트 로직 구현
     }
 }

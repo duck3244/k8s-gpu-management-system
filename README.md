@@ -6,66 +6,106 @@ Kubernetes 환경의 GPU 리소스 관리 시스템
 
 ```
 k8s-gpu-management-system/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/
-│   │   │       └── k8s/
-│   │   │           └── gpu/
-│   │   │               ├── K8sGpuManagementApplication.java
-│   │   │               ├── config/
-│   │   │               │   ├── SwaggerConfig.java
-│   │   │               │   ├── JpaConfig.java
-│   │   │               │   ├── DatabaseConfig.java
-│   │   │               │   ├── BatchConfig.java
-│   │   │               │   └── WebConfig.java
-│   │   │               ├── controller/
-│   │   │               │   ├── GpuNodeController.java
-│   │   │               │   └── GpuDashboardController.java
-│   │   │               ├── service/
-│   │   │               │   ├── GpuNodeService.java
-│   │   │               │   └── GpuDashboardService.java
-│   │   │               ├── repository/
-│   │   │               │   ├── GpuNodeRepository.java
-│   │   │               │   ├── GpuDeviceRepository.java
-│   │   │               │   ├── GpuUsageMetricsRepository.java
-│   │   │               │   ├── SystemAlertsRepository.java
-│   │   │               │   └── GpuAllocationsRepository.java
-│   │   │               ├── entity/
-│   │   │               │   ├── BaseEntity.java
-│   │   │               │   ├── GpuNode.java
-│   │   │               │   ├── GpuDevice.java
-│   │   │               │   ├── GpuModel.java
-│   │   │               │   ├── GpuUsageMetrics.java
-│   │   │               │   ├── SystemAlerts.java
-│   │   │               │   └── GpuAllocations.java
-│   │   │               ├── dto/
-│   │   │               │   ├── GpuNodeDto.java
-│   │   │               │   └── GpuDashboardDto.java
-│   │   │               ├── mapper/
-│   │   │               │   └── GpuNodeMapper.java
-│   │   │               ├── batch/
-│   │   │               │   └── GpuMetricsBatchJob.java
-│   │   │               └── exception/
-│   │   │                   ├── ResourceNotFoundException.java
-│   │   │                   ├── GlobalExceptionHandler.java
-│   │   │                   └── ErrorResponse.java
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       └── logback-spring.xml
-│   └── test/
-│       └── java/
-│           └── com/
-│               └── k8s/
-│                   └── gpu/
-│                       └── K8sGpuManagementApplicationTests.java
-├── build.gradle
-├── settings.gradle
-├── gradle/
-│   └── wrapper/
-├── gradlew
-├── gradlew.bat
-└── README.md
+├── 📁 src/
+│   ├── 📁 main/
+│   │   ├── 📁 java/
+│   │   │   └── 📁 com/
+│   │   │       └── 📁 k8s/
+│   │   │           └── 📁 gpu/
+│   │   │               ├── 📄 K8sGpuManagementApplication.java
+│   │   │               ├── 📁 config/
+│   │   │               │   ├── 📄 SwaggerConfig.java (기존)
+│   │   │               │   ├── 🆕 OpenApiConfig.java (신규 - OpenAPI 3)
+│   │   │               │   ├── 📄 JpaConfig.java
+│   │   │               │   ├── 📄 DatabaseConfig.java
+│   │   │               │   ├── 📄 BatchConfig.java
+│   │   │               │   └── 📄 WebConfig.java
+│   │   │               ├── 📁 controller/
+│   │   │               │   ├── 📄 GpuNodeController.java
+│   │   │               │   └── 📄 GpuDashboardController.java
+│   │   │               ├── 📁 service/
+│   │   │               │   ├── 📄 GpuNodeService.java
+│   │   │               │   └── 📄 GpuDashboardService.java
+│   │   │               ├── 📁 repository/
+│   │   │               │   ├── 📄 GpuNodeRepository.java
+│   │   │               │   ├── 📄 GpuDeviceRepository.java
+│   │   │               │   ├── 🔧 GpuUsageMetricsRepository.java (Oracle 호환 수정)
+│   │   │               │   ├── 📄 SystemAlertsRepository.java
+│   │   │               │   └── 🔧 GpuAllocationsRepository.java (Oracle 호환 수정)
+│   │   │               ├── 📁 entity/
+│   │   │               │   ├── 📄 BaseEntity.java
+│   │   │               │   ├── 📄 GpuNode.java
+│   │   │               │   ├── 📄 GpuDevice.java
+│   │   │               │   ├── 📄 GpuModel.java
+│   │   │               │   ├── 📄 GpuUsageMetrics.java
+│   │   │               │   ├── 📄 SystemAlerts.java
+│   │   │               │   └── 📄 GpuAllocations.java
+│   │   │               ├── 📁 dto/
+│   │   │               │   ├── 📄 GpuNodeDto.java
+│   │   │               │   └── 📄 GpuDashboardDto.java
+│   │   │               ├── 📁 mapper/
+│   │   │               │   └── 📄 GpuNodeMapper.java
+│   │   │               ├── 📁 batch/
+│   │   │               │   └── 🔧 GpuMetricsBatchJob.java (import 및 어노테이션 수정)
+│   │   │               └── 📁 exception/
+│   │   │                   ├── 📄 ResourceNotFoundException.java
+│   │   │                   ├── 📄 GlobalExceptionHandler.java
+│   │   │                   └── 📄 ErrorResponse.java
+│   │   └── 📁 resources/
+│   │       ├── 📄 application.yml
+│   │       ├── 🆕 application-test.yml (신규 - 테스트 설정)
+│   │       ├── 🆕 application-docker.yml (신규 - Docker 설정)
+│   │       └── 🔧 logback-spring.xml (완전한 로깅 설정 추가)
+│   └── 📁 test/
+│       └── 📁 java/
+│           └── 📁 com/
+│               └── 📁 k8s/
+│                   └── 📁 gpu/
+│                       ├── 🔧 K8sGpuManagementApplicationTests.java (패키지 구조 수정)
+│                       ├── 🆕 service/
+│                       │   ├── 🆕 GpuNodeServiceTest.java
+│                       │   └── 🆕 GpuDashboardServiceTest.java
+│                       ├── 🆕 controller/
+│                       │   └── 🆕 GpuNodeControllerTest.java
+│                       ├── 🆕 repository/
+│                       │   └── 🆕 GpuNodeRepositoryTest.java
+│                       ├── 🆕 batch/
+│                       │   └── 🆕 GpuMetricsBatchJobTest.java
+│                       └── 🆕 integration/
+│                           └── 🆕 GpuNodeIntegrationTest.java
+├── 🔧 build.gradle (의존성 및 테스트 설정 개선)
+├── 📄 settings.gradle
+├── 📄 gradlew
+├── 📄 gradlew.bat
+├── 📄 README.md
+├── 🆕 📁 database/
+│   ├── 🆕 📄 ddl-script.sql (Oracle DDL 스크립트)
+│   ├── 🆕 📄 sample-data.sql (샘플 데이터)
+│   └── 🆕 📁 init/
+│       └── 🆕 📄 01-create-user.sql (사용자 생성 스크립트)
+├── 🆕 📁 docker/
+│   ├── 🆕 📄 docker-compose.yml (개발환경용)
+│   ├── 🆕 📄 Dockerfile
+│   ├── 🆕 📄 .env.example
+│   └── 🆕 📁 monitoring/
+│       ├── 🆕 📄 prometheus.yml
+│       └── 🆕 📁 grafana/
+│           ├── 🆕 📁 dashboards/
+│           └── 🆕 📁 datasources/
+├── 🆕 📁 scripts/
+│   ├── 🆕 📄 start-dev.sh (개발환경 시작 스크립트)
+│   └── 🆕 📄 stop-dev.sh (개발환경 중지 스크립트)
+├── 🆕 📁 docs/
+│   ├── 🆕 📄 deployment-guide.md (배포 가이드)
+│   ├── 🆕 📄 api-documentation.md
+│   └── 🆕 📄 troubleshooting.md
+└── 🆕 📁 k8s/
+    ├── 🆕 📄 namespace.yaml
+    ├── 🆕 📄 configmap.yaml
+    ├── 🆕 📄 secret.yaml
+    ├── 🆕 📄 deployment.yaml
+    ├── 🆕 📄 service.yaml
+    └── 🆕 📄 ingress.yaml
 ```
 
 ## 기능 구현 상태

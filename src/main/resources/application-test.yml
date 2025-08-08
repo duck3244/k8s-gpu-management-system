@@ -1,0 +1,70 @@
+server:
+  port: 0  # 랜덤 포트 사용
+
+spring:
+  application:
+    name: k8s-gpu-management-system-test
+  
+  # 테스트용 H2 데이터베이스 설정
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=Oracle
+    username: sa
+    password: 
+    hikari:
+      connection-test-query: SELECT 1
+      minimum-idle: 1
+      maximum-pool-size: 5
+  
+  h2:
+    console:
+      enabled: true
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+  
+  batch:
+    job:
+      enabled: false
+    initialize-schema: always
+  
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Seoul
+
+# 로깅 설정
+logging:
+  level:
+    com.k8s.gpu: DEBUG
+    org.springframework.batch: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.web: WARN
+    org.springframework.boot.autoconfigure: WARN
+
+# 테스트용 설정
+app:
+  gpu:
+    metrics:
+      collection:
+        interval: 5000  # 5초 (테스트용)
+        batch-size: 10
+    alert:
+      evaluation:
+        interval: 10000  # 10초 (테스트용)
+    optimization:
+      schedule: "0 */1 * * * *"  # 매분 (테스트용)
+  
+  batch:
+    metrics-collection:
+      chunk-size: 10
+      thread-pool-size: 2
