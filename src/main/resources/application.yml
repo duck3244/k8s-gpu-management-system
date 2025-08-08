@@ -8,7 +8,7 @@ spring:
     name: k8s-gpu-management-system
   
   datasource:
-    driver-class-name: oracle.jdbc.OracleDriver
+    driver-class-name: oracle.jdbc.driver.OracleDriver
     url: jdbc:oracle:thin:@localhost:1521:xe
     username: gpu_admin
     password: gpu_password
@@ -44,8 +44,6 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Seoul
-    serialization:
-      write-dates-as-timestamps: false
 
 # Logging
 logging:
@@ -67,7 +65,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics
   endpoint:
     health:
       show-details: always

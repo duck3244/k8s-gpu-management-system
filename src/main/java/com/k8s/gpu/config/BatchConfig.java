@@ -1,6 +1,7 @@
 package com.k8s.gpu.config;
 
 import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -15,9 +16,10 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 
 /**
- * Spring Batch 설정
+ * Spring Batch 설정 (Spring Boot 2.3.2 호환)
  */
 @Configuration
+@EnableBatchProcessing
 public class BatchConfig extends DefaultBatchConfigurer {
 
     @Autowired

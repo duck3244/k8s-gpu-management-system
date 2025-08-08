@@ -38,7 +38,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 
 /**
- * GPU 메트릭 수집 배치 작업
+ * GPU 메트릭 수집 배치 작업 (Spring Boot 2.3.2 호환)
  */
 @Configuration
 @RequiredArgsConstructor
